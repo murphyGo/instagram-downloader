@@ -56,6 +56,10 @@
 
 **Why**: v1 web UI를 production에 띄우니 corsproxy.io는 production origin을 403으로 차단(localhost만 무료), allorigins.win은 502, codetabs는 IG가 "useragent mismatch"로 거부, thingproxy는 서비스 종료. 무료 공개 프록시로는 Instagram이 안정적으로 풀리지 않음. `proxy/` 디렉토리에 의존성 없는 ~120줄 Node 프록시(`server.js` + Dockerfile + fly.toml) 추가, Fly.io에 사용자가 `fly deploy`로 배포. 프록시는 인스타+CDN만 화이트리스트, 경로별로 FB UA / 브라우저 UA / `X-IG-App-ID` 자동 주입. Web UI는 빌드타임 `VITE_PROXY_URL`(GH Actions secret `PROXY_URL`)로 프록시 URL 주입. CF Workers 대신 Fly를 고른 이유: 사용자 기존 서비스가 Fly에 있어 운영 중복 회피. 트레이드오프: 0ms 콜드스타트 대신 1~3s, 단일 region(nrt) 레이튼시.
 
+## 2026-04-27: 1순위 경로를 `/embed/captioned/`로 교체 — 12개 한계 + og:type=article 케이스 해결
+
+**Why**: 사용자가 시도한 reel `DWIlp7age_0`은 og:type이 "article"로 와서 og:video가 없고, 작성자(cho.tanky)의 최근 12개 안에도 없어 web_profile_info 폴백도 실패 → 썸네일만 노출. 조사 결과 `https://www.instagram.com/p/<sc>/embed/captioned/`를 FB UA로 호출하면 응답에 `"contextJSON"` JS 문자열로 박힌 JSON 안에 `gql_data.shortcode_media`(__typename, video_url, display_resources, edge_sidecar_to_children 모두 포함)가 어떤 게시물 종류·연식이든 일관되게 들어옴. 단일 요청이고 인증 불필요. 캐러셀의 풀 해상도(1080px)는 `display_resources` 배열의 가장 큰 src를 골라 사용 (`display_url`은 `lookaside.instagram.com/seo/...` 리다이렉터로 와서 확장자 추출이 깨짐). og: + web_profile_info 경로는 폴백으로 유지.
+
 ---
 
 *New entries go below, newest at the bottom.*

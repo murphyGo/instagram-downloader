@@ -54,14 +54,24 @@ export async function fetchMedia(
   const fetchFn = opts.fetchImpl ?? fetch;
   const { shortcode, username: urlUsername } = parseShortcode(postUrl);
 
+  // Path 1 (preferred): /embed/captioned/ ships the full shortcode_media node
+  // for any post age, type, and carousel size. One request, no auth.
+  try {
+    const items = await fetchViaEmbed(fetchFn, shortcode, opts.proxyUrl);
+    if (items.length > 0) return items;
+  } catch {
+    // fall through — embed format may have changed; let og:/profile try
+  }
+
   const og = await fetchOgTags(fetchFn, shortcode, opts.proxyUrl);
 
-  // Single video: og:video carries the full-quality MP4. Done.
+  // Path 2: og:video — fast path for posts where IG marks og:type=video.
   if (og['og:type'] === 'video' && og['og:video']) {
     return [{ type: 'video', url: og['og:video'], filename: filenameFor(og['og:video'], shortcode, 0) }];
   }
 
-  // Image or carousel: try web_profile_info for full-res + carousel children.
+  // Path 3: web_profile_info for full-res images + carousel sub-items
+  // (limited to the user's latest ~12 posts).
   const username = urlUsername ?? usernameFromOgUrl(og['og:url']);
   if (username) {
     try {
@@ -78,9 +88,94 @@ export async function fetchMedia(
   }
 
   const tip = username
-    ? 'Post may be private, deleted, or older than the latest 12 posts.'
+    ? 'Post may be private or deleted.'
     : 'In a browser the URL must include the username (e.g. /<user>/p/<shortcode>/) for the fallback path to work.';
   throw new Error(`No media URL found for ${shortcode}. ${tip}`);
+}
+
+async function fetchViaEmbed(
+  fetchFn: typeof fetch,
+  shortcode: string,
+  proxyUrl: string | undefined,
+): Promise<Media[]> {
+  const target = `https://www.instagram.com/p/${shortcode}/embed/captioned/`;
+  const res = await fetchFn(wrap(target, proxyUrl), {
+    headers: {
+      'User-Agent': FB_UA,
+      'Accept-Language': 'en-US,en;q=0.9',
+    },
+  });
+  if (!res.ok) throw new Error(`embed HTTP ${res.status} for ${shortcode}`);
+  const html = await res.text();
+  const node = extractEmbedNode(html);
+  if (!node) throw new Error(`embed: shortcode_media not found for ${shortcode}`);
+  return extractMediaFromNode(node, shortcode);
+}
+
+/**
+ * The embed page wraps the post data in a JS-encoded string under the key
+ * `"contextJSON"`. After decoding the JS string, the resulting JSON has
+ * `gql_data.shortcode_media` (or `context.media`) with full data — typename,
+ * is_video, display_url / video_url, edge_sidecar_to_children for carousels.
+ */
+export function extractEmbedNode(html: string): MediaNode | null {
+  const marker = '"contextJSON":"';
+  const start = html.indexOf(marker);
+  if (start < 0) return null;
+  const contentStart = start + marker.length;
+
+  // Find the unescaped closing " of the JS string literal
+  let i = contentStart;
+  while (i < html.length) {
+    const c = html[i];
+    if (c === '\\') { i += 2; continue; }
+    if (c === '"') break;
+    i++;
+  }
+  if (i >= html.length) return null;
+
+  const decoded = jsUnescape(html.substring(contentStart, i));
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(decoded);
+  } catch {
+    return null;
+  }
+  if (!parsed || typeof parsed !== 'object') return null;
+  const root = parsed as {
+    gql_data?: { shortcode_media?: MediaNode };
+    context?: { media?: MediaNode };
+  };
+  return root.gql_data?.shortcode_media ?? root.context?.media ?? null;
+}
+
+function jsUnescape(s: string): string {
+  let out = '';
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i]!;
+    if (c === '\\' && i + 1 < s.length) {
+      const n = s[i + 1]!;
+      switch (n) {
+        case '"': out += '"'; i++; continue;
+        case '\\': out += '\\'; i++; continue;
+        case '/': out += '/'; i++; continue;
+        case 'n': out += '\n'; i++; continue;
+        case 't': out += '\t'; i++; continue;
+        case 'r': out += '\r'; i++; continue;
+        case 'b': out += '\b'; i++; continue;
+        case 'f': out += '\f'; i++; continue;
+        case 'u':
+          if (i + 5 < s.length) {
+            out += String.fromCharCode(parseInt(s.substring(i + 2, i + 6), 16));
+            i += 5;
+            continue;
+          }
+      }
+    }
+    out += c;
+  }
+  return out;
 }
 
 async function fetchOgTags(
@@ -158,6 +253,7 @@ type MediaNode = {
   is_video?: boolean;
   display_url?: string;
   video_url?: string;
+  display_resources?: Array<{ src: string; config_width: number; config_height: number }>;
   edge_sidecar_to_children?: { edges?: Array<{ node?: MediaNode }> };
 };
 
@@ -179,12 +275,25 @@ function extractMediaFromNode(node: MediaNode, shortcode: string): Media[] {
 function nodeToMedia(node: MediaNode | undefined, shortcode: string, index: number): Media | null {
   if (!node) return null;
   if (node.is_video && node.video_url) {
-    return { type: 'video', url: node.video_url, filename: filenameFor(node.video_url, shortcode, index) };
+    return { type: 'video', url: node.video_url, filename: filenameFor(node.video_url, shortcode, index, 'video') };
   }
-  if (node.display_url) {
-    return { type: 'image', url: node.display_url, filename: filenameFor(node.display_url, shortcode, index) };
+  // Prefer the largest entry in display_resources (full res, ~1080px). display_url
+  // from the embed page is sometimes the lookaside SEO redirector which is harder
+  // to filename and may resolve to a smaller variant.
+  const imageUrl = pickLargestImage(node.display_resources) ?? node.display_url;
+  if (imageUrl) {
+    return { type: 'image', url: imageUrl, filename: filenameFor(imageUrl, shortcode, index, 'image') };
   }
   return null;
+}
+
+function pickLargestImage(resources: MediaNode['display_resources']): string | undefined {
+  if (!resources || resources.length === 0) return undefined;
+  let best = resources[0]!;
+  for (const r of resources) {
+    if (r.config_width > best.config_width) best = r;
+  }
+  return best.src;
 }
 
 function wrap(url: string, proxyUrl: string | undefined): string {
@@ -197,8 +306,8 @@ function usernameFromOgUrl(ogUrl: string | undefined): string | undefined {
   return m?.[1];
 }
 
-function filenameFor(mediaUrl: string, shortcode: string, index: number): string {
-  const ext = extFromUrl(mediaUrl);
+function filenameFor(mediaUrl: string, shortcode: string, index: number, type: 'image' | 'video' = 'image'): string {
+  const ext = extFromUrl(mediaUrl) || (type === 'video' ? '.mp4' : '.jpg');
   return `${shortcode}_${index}${ext}`;
 }
 
