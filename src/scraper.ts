@@ -20,6 +20,11 @@ const IG_APP_ID = '936619743392459';
 /** Facebook crawler UA. Triggers SSR with og: meta tags on post pages. */
 const FB_UA = 'facebookexternalhit/1.1';
 
+/** A realistic browser UA. Required by web_profile_info — bare requests
+ *  fail with 400 "SecFetch Policy violation". */
+const BROWSER_UA =
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36';
+
 const POST_PATH_RE = /\/(?:p|reel|reels|tv)\/([A-Za-z0-9_-]+)/;
 const USERNAME_RE = /instagram\.com\/([^/?#]+)\/(?:p|reel|reels|tv)\//;
 
@@ -123,7 +128,13 @@ async function fetchViaProfileApi(
 ): Promise<Media[]> {
   const target = `https://www.instagram.com/api/v1/users/web_profile_info/?username=${encodeURIComponent(username)}`;
   const res = await fetchFn(wrap(target, proxyUrl), {
-    headers: { 'X-IG-App-ID': IG_APP_ID, 'Accept': '*/*' },
+    headers: {
+      'X-IG-App-ID': IG_APP_ID,
+      'Accept': '*/*',
+      // Browsers ignore these on outbound, but Node needs them or IG rejects with 400.
+      'User-Agent': BROWSER_UA,
+      'Referer': `https://www.instagram.com/${encodeURIComponent(username)}/`,
+    },
   });
   if (!res.ok) {
     if (res.status === 429) throw new Error(`Rate limited by Instagram profile API (429). Wait and retry.`);

@@ -44,6 +44,14 @@
 
 **Why**: 브라우저 fetch는 `User-Agent` 헤더 설정을 강제로 차단함(forbidden header). 따라서 og: 메타 스크래핑 경로(FB 크롤러 UA 필요)는 브라우저에서 동작 불가. 폴백인 `web_profile_info`는 `X-IG-App-ID` 커스텀 헤더만 쓰므로 CORS 프록시 경유로 OK — **단 username을 알아야 함**. URL이 `/p/<sc>/` 형태면 username을 추출할 수 없어 실패. URL이 `/<user>/p/<sc>/` 또는 `/<user>/reel/<sc>/`이면 정상 동작. CLI는 Node에서 UA 자유롭게 설정 가능해 양쪽 다 OK. v1에서는 footer 안내로 처리, v2에서 자체 워커(Cloudflare Workers) 도입 시 양쪽 모두 해결 가능.
 
+## 2026-04-27: web_profile_info에 UA + Referer 필수
+
+**Why**: 스파이크 때는 curl이 자동으로 정상 헤더를 붙여서 동작했는데, Node fetch의 기본 헤더로는 IG가 `400 SecFetch Policy violation`을 반환. 캐러셀 스모크 테스트에서 발견. `User-Agent`(현실적인 브라우저 UA)와 `Referer: https://www.instagram.com/<username>/`을 추가하면 200으로 풀린다. 브라우저는 이들 헤더를 자동으로 채우므로 corsproxy 경유 시 문제없을 것으로 기대 — 실패하면 프록시 측 헤더 정책을 의심.
+
+## 2026-04-27: v1 스모크 테스트 결과
+
+**Why**: CLI 5케이스 모두 통과(단일 비디오, 캐러셀 10개, 사용자명 없는 /p/, 존재하지 않는 shortcode→exit 1, 파싱 실패 URL→exit 1). stderr/stdout 분리도 동작 확인. **Web UI는 브라우저로 직접 열어보지 않았음** — `npm run build:web` 통과 + dev server 정적 응답 확인까지만 했고 실제 IG 호출/다운로드 흐름은 사용자가 GH Pages에서 검증해야 함. v2 후보: Cloudflare Worker 기반 자체 프록시.
+
 ---
 
 *New entries go below, newest at the bottom.*
