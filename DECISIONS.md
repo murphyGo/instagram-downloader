@@ -40,6 +40,10 @@
 
 **채택**: scraper.ts는 두 경로를 모두 구현하되 og 우선, 캐러셀 또는 풀 해상도 필요 시 web_profile_info로 폴백. 두 경로 모두 fragile(IG가 언제든 깨뜨릴 수 있음) — README/에러 메시지에 명시.
 
+## 2026-04-27: 브라우저 UA 제약 — URL에 사용자명 권장
+
+**Why**: 브라우저 fetch는 `User-Agent` 헤더 설정을 강제로 차단함(forbidden header). 따라서 og: 메타 스크래핑 경로(FB 크롤러 UA 필요)는 브라우저에서 동작 불가. 폴백인 `web_profile_info`는 `X-IG-App-ID` 커스텀 헤더만 쓰므로 CORS 프록시 경유로 OK — **단 username을 알아야 함**. URL이 `/p/<sc>/` 형태면 username을 추출할 수 없어 실패. URL이 `/<user>/p/<sc>/` 또는 `/<user>/reel/<sc>/`이면 정상 동작. CLI는 Node에서 UA 자유롭게 설정 가능해 양쪽 다 OK. v1에서는 footer 안내로 처리, v2에서 자체 워커(Cloudflare Workers) 도입 시 양쪽 모두 해결 가능.
+
 ---
 
 *New entries go below, newest at the bottom.*
