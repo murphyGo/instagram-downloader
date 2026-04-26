@@ -7,6 +7,9 @@
   "engines": {
     "node": ">=20"
   },
+  "bin": {
+    "instagram-dl": "dist/cli.js"
+  },
   "scripts": {
     "build:cli": "tsc -p tsconfig.json",
     "build:web": "vite build",

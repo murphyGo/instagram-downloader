@@ -24,7 +24,7 @@
 - [x] **Scraper 스파이크**: 인증 없이 공개 포스트의 미디어 URL을 얻는 경로 검증 (oEmbed, `?__a=1`, 그래프QL 중 어떤 게 동작하는지). 결과를 `DECISIONS.md`에 기록
 - [x] `scraper.ts`: `fetchMedia(url, opts)` → `{type: 'image'|'video', url, ...}[]` 반환. 단일/캐러셀/비디오 모두 처리
 - [x] CORS 프록시 어댑터: 브라우저 환경에서만 프록시 경유, Node에서는 직접 fetch. 프록시 URL은 환경변수/쿼리스트링으로 교체 가능
-- [ ] CLI: `instagram-dl <url> [--out <dir>] [--json]` — 미디어 다운로드 + 진행 출력 + 명확한 exit code
+- [x] CLI: `instagram-dl <url> [--out <dir>] [--json]` — 미디어 다운로드 + 진행 출력 + 명확한 exit code
 - [ ] Web UI: URL 입력 필드, "가져오기" 버튼, 미디어 그리드(이미지 미리보기/비디오 플레이어), 각 항목 다운로드 버튼. 모바일 우선 반응형
 - [ ] GitHub Actions: `main` push 시 web 빌드 → GH Pages 배포
 
