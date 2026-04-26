@@ -30,6 +30,16 @@
 
 **Why**: `index.html`을 web 디렉토리에 두고 Vite의 root로 지정 — 정적 자산과 CLI 코드가 섞이지 않게 분리. base는 GH Pages가 `https://<user>.github.io/<repo>/` 경로로 서빙하는 점을 고정. 다른 이름으로 포크 시 vite.config.ts 한 줄 수정 필요. 빌드 산출물은 `dist-web/`로 분리(`dist/`는 CLI 전용)해서 두 빌드가 충돌하지 않도록 함.
 
+## 2026-04-27: Scraper 스파이크 결과 — 두 가지 경로 채택
+
+**Why**: 2026-04-27 기준 다음 경로 확인:
+
+- ❌ `?__a=1`, oEmbed (`api.instagram.com/oembed`), 임의 doc_id의 GraphQL — 모두 실패 (404/302/403/login wall)
+- ✅ **og: 메타 스크래핑** — `GET https://www.instagram.com/p/<shortcode>/` 요청 시 `User-Agent: facebookexternalhit/1.1`을 보내면 og:image, og:video 메타 태그가 풀 HTML에 박혀서 옴. 헤더 한 줄로 끝, 인증·앱ID 불필요. 한계: og:image는 640px 썸네일이고 캐러셀은 첫 항목만 노출.
+- ✅ **web_profile_info API 폴백** — `GET /api/v1/users/web_profile_info/?username=<u>` + `X-IG-App-ID: 936619743392459` 헤더로 호출하면 풀 해상도 `display_url`, `video_url`, 캐러셀 `edge_sidecar_to_children` 포함 12개 최근 포스트 반환. og:url에서 username을 뽑아 매칭. (앱ID는 Instagram 웹앱이 공개적으로 노출하는 값.)
+
+**채택**: scraper.ts는 두 경로를 모두 구현하되 og 우선, 캐러셀 또는 풀 해상도 필요 시 web_profile_info로 폴백. 두 경로 모두 fragile(IG가 언제든 깨뜨릴 수 있음) — README/에러 메시지에 명시.
+
 ---
 
 *New entries go below, newest at the bottom.*
