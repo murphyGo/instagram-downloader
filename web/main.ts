@@ -1,4 +1,5 @@
 import './style.css';
+import JSZip from 'jszip';
 import { fetchMedia, type Media } from '../src/scraper.js';
 import { resolveProxyUrl } from '../src/proxy.js';
 
@@ -14,10 +15,13 @@ app.innerHTML = `
       <button type="submit" id="go">가져오기</button>
     </form>
     <p id="status"></p>
+    <div id="bulk" class="bulk" hidden>
+      <button id="all" type="button">전체 ZIP 다운로드</button>
+    </div>
     <div id="results" class="results"></div>
     <footer>
       공개 포스트만 지원. 스토리/비공개는 인증이 필요합니다.<br/>
-      브라우저는 <code>https://www.instagram.com/&lt;user&gt;/p/&lt;id&gt;/</code> 형식 URL이 더 잘 됩니다 (사용자명 포함).<br/>
+      미리보기·다운로드는 모두 프록시 경유합니다.<br/>
       프록시 변경: <code>?proxy=&lt;url&gt;</code>
     </footer>
   </main>
@@ -28,15 +32,23 @@ const urlInput = document.querySelector<HTMLInputElement>('#url')!;
 const goButton = document.querySelector<HTMLButtonElement>('#go')!;
 const statusEl = document.querySelector<HTMLParagraphElement>('#status')!;
 const resultsEl = document.querySelector<HTMLDivElement>('#results')!;
+const bulkEl = document.querySelector<HTMLDivElement>('#bulk')!;
+const allButton = document.querySelector<HTMLButtonElement>('#all')!;
 
 // VITE_PROXY_URL is injected at build time. Set it in CI (`secrets.PROXY_URL`)
 // to your deployed Fly.io proxy. For local `npm run dev` it can be omitted —
 // resolveProxyUrl falls back to corsproxy.io which works on localhost.
 const proxyUrl = resolveProxyUrl(import.meta.env.VITE_PROXY_URL);
 
+let lastMedia: Media[] = [];
+
 form.addEventListener('submit', (e) => {
   e.preventDefault();
   void handleSubmit();
+});
+
+allButton.addEventListener('click', () => {
+  void downloadAllAsZip();
 });
 
 async function handleSubmit(): Promise<void> {
@@ -47,6 +59,8 @@ async function handleSubmit(): Promise<void> {
   statusEl.classList.remove('error');
   statusEl.textContent = '가져오는 중…';
   resultsEl.innerHTML = '';
+  bulkEl.hidden = true;
+  lastMedia = [];
 
   try {
     const media = await fetchMedia(url, { proxyUrl });
@@ -55,13 +69,19 @@ async function handleSubmit(): Promise<void> {
       return;
     }
     statusEl.textContent = `${media.length}개 발견`;
+    lastMedia = media;
     renderMedia(media);
+    if (media.length > 1) bulkEl.hidden = false;
   } catch (err) {
     statusEl.classList.add('error');
     statusEl.textContent = `오류: ${(err as Error).message}`;
   } finally {
     goButton.disabled = false;
   }
+}
+
+function viaProxy(url: string): string {
+  return proxyUrl ? `${proxyUrl}${encodeURIComponent(url)}` : url;
 }
 
 function renderMedia(media: Media[]): void {
@@ -72,13 +92,13 @@ function renderMedia(media: Media[]): void {
 
     if (m.type === 'image') {
       const img = document.createElement('img');
-      img.src = m.url;
+      img.src = viaProxy(m.url);
       img.alt = m.filename ?? 'image';
       img.loading = 'lazy';
       card.appendChild(img);
     } else {
       const video = document.createElement('video');
-      video.src = m.url;
+      video.src = viaProxy(m.url);
       video.controls = true;
       video.preload = 'metadata';
       video.playsInline = true;
@@ -97,27 +117,58 @@ function renderMedia(media: Media[]): void {
   resultsEl.appendChild(frag);
 }
 
+async function fetchAsBlob(m: Media): Promise<Blob> {
+  const res = await fetch(viaProxy(m.url));
+  if (!res.ok) throw new Error(`HTTP ${res.status} for ${m.filename ?? m.type}`);
+  return res.blob();
+}
+
+function triggerSave(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 async function downloadAsBlob(m: Media, btn: HTMLButtonElement): Promise<void> {
   const original = btn.textContent;
   btn.disabled = true;
   btn.textContent = '받는 중…';
   try {
-    const fetchUrl = proxyUrl ? `${proxyUrl}${encodeURIComponent(m.url)}` : m.url;
-    const res = await fetch(fetchUrl);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const blob = await res.blob();
-    const blobUrl = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = blobUrl;
-    a.download = m.filename ?? 'media';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(blobUrl);
+    const blob = await fetchAsBlob(m);
+    triggerSave(blob, m.filename ?? 'media');
   } catch (err) {
     alert(`다운로드 실패: ${(err as Error).message}`);
   } finally {
     btn.disabled = false;
     btn.textContent = original;
+  }
+}
+
+async function downloadAllAsZip(): Promise<void> {
+  if (lastMedia.length === 0) return;
+  const original = allButton.textContent;
+  allButton.disabled = true;
+  try {
+    const zip = new JSZip();
+    for (let i = 0; i < lastMedia.length; i++) {
+      const m = lastMedia[i]!;
+      allButton.textContent = `받는 중… ${i + 1}/${lastMedia.length}`;
+      const blob = await fetchAsBlob(m);
+      zip.file(m.filename ?? `media_${i}`, blob);
+    }
+    allButton.textContent = '압축 중…';
+    const zipBlob = await zip.generateAsync({ type: 'blob' });
+    const stem = lastMedia[0]?.filename?.split('_')[0] ?? 'instagram';
+    triggerSave(zipBlob, `${stem}.zip`);
+  } catch (err) {
+    alert(`전체 다운로드 실패: ${(err as Error).message}`);
+  } finally {
+    allButton.disabled = false;
+    allButton.textContent = original;
   }
 }

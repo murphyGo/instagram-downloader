@@ -78,6 +78,15 @@ button:disabled { opacity: 0.5; cursor: progress; }
 }
 #status.error { color: var(--error); }
 
+.bulk {
+  margin-bottom: 12px;
+}
+.bulk button {
+  width: 100%;
+  background: var(--fg);
+  color: var(--bg);
+}
+
 .results {
   display: grid;
   grid-template-columns: 1fr;
