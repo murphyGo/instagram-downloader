@@ -72,7 +72,10 @@ export async function fetchMedia(
     return [{ type: 'image', url: og['og:image'], filename: filenameFor(og['og:image'], shortcode, 0) }];
   }
 
-  throw new Error('No media URL found in post');
+  const tip = username
+    ? 'Post may be private, deleted, or older than the latest 12 posts.'
+    : 'In a browser the URL must include the username (e.g. /<user>/p/<shortcode>/) for the fallback path to work.';
+  throw new Error(`No media URL found for ${shortcode}. ${tip}`);
 }
 
 async function fetchOgTags(
@@ -89,6 +92,11 @@ async function fetchOgTags(
   });
   if (!res.ok) {
     if (res.status === 404) throw new Error(`Post not found (404). Private or deleted? ${shortcode}`);
+    if (res.status === 429) throw new Error(`Rate limited by Instagram (429). Wait and retry.`);
+    if (res.status === 401 || res.status === 403) {
+      throw new Error(`Login required (HTTP ${res.status}). Post may be private.`);
+    }
+    if (res.status >= 500) throw new Error(`Instagram server error (HTTP ${res.status}). Retry later.`);
     throw new Error(`Instagram returned HTTP ${res.status} for ${shortcode}`);
   }
   const html = await res.text();
@@ -117,7 +125,12 @@ async function fetchViaProfileApi(
   const res = await fetchFn(wrap(target, proxyUrl), {
     headers: { 'X-IG-App-ID': IG_APP_ID, 'Accept': '*/*' },
   });
-  if (!res.ok) throw new Error(`web_profile_info HTTP ${res.status}`);
+  if (!res.ok) {
+    if (res.status === 429) throw new Error(`Rate limited by Instagram profile API (429). Wait and retry.`);
+    if (res.status === 404) throw new Error(`User '${username}' not found (404).`);
+    if (res.status >= 500) throw new Error(`Instagram profile API error (HTTP ${res.status}).`);
+    throw new Error(`web_profile_info HTTP ${res.status}`);
+  }
   const data = (await res.json()) as ProfileApiResponse;
   const edges = data?.data?.user?.edge_owner_to_timeline_media?.edges ?? [];
   for (const edge of edges) {

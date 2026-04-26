@@ -64,7 +64,7 @@ async function downloadOne(media: Media, outDir: string, fallbackName: string): 
 }
 
 function isNetworkError(msg: string): boolean {
-  return /fetch failed|ECONNRESET|ETIMEDOUT|ENOTFOUND|HTTP 5\d\d|proxy|web_profile_info HTTP/i.test(msg);
+  return /fetch failed|ECONNRESET|ETIMEDOUT|ENOTFOUND|HTTP 5\d\d|server error|Rate limited|proxy|web_profile_info HTTP/i.test(msg);
 }
 
 async function main(argv: readonly string[]): Promise<number> {
