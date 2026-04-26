@@ -26,7 +26,7 @@
 - [x] CORS 프록시 어댑터: 브라우저 환경에서만 프록시 경유, Node에서는 직접 fetch. 프록시 URL은 환경변수/쿼리스트링으로 교체 가능
 - [x] CLI: `instagram-dl <url> [--out <dir>] [--json]` — 미디어 다운로드 + 진행 출력 + 명확한 exit code
 - [x] Web UI: URL 입력 필드, "가져오기" 버튼, 미디어 그리드(이미지 미리보기/비디오 플레이어), 각 항목 다운로드 버튼. 모바일 우선 반응형
-- [ ] GitHub Actions: `main` push 시 web 빌드 → GH Pages 배포
+- [x] GitHub Actions: `main` push 시 web 빌드 → GH Pages 배포
 
 ### Polish
 

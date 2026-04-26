@@ -8,7 +8,28 @@ In development. See `PLAN.md` for progress.
 
 ## Run
 
-TBD — 구현이 시작되면 빌드/실행 명령이 여기 들어갑니다.
+### Web (GitHub Pages)
+
+배포본: `https://<user>.github.io/instagram-downloader/`
+
+로컬:
+```bash
+npm install
+npm run dev   # http://localhost:5173/instagram-downloader/
+```
+
+### CLI
+
+```bash
+npm install
+npm run build:cli
+node dist/cli.js https://www.instagram.com/<user>/reel/<id>/ --out ./downloads --json
+```
+
+## Deploy
+
+GitHub Actions로 `main` 푸시 시 자동 배포됩니다 (`.github/workflows/deploy.yml`).
+처음에는 저장소 Settings → Pages에서 **Source: GitHub Actions**로 설정해야 합니다.
 
 ## Scope
 
