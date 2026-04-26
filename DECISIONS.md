@@ -26,6 +26,10 @@
 
 **Why**: 브라우저(Vite는 ESM 네이티브)와 Node 양쪽에서 같은 코드를 공유하려면 ESM이 자연스러움. CommonJS로 가면 web 번들과 Node 런타임 사이에 dual-package 문제가 생김. 트레이드오프: TS에서 상대 경로 import가 빌드 산출물의 `.js` 확장자를 명시해야 함 (`import { foo } from './foo.js'`). Node 20+를 요구하는 BRIEF와도 부합.
 
+## 2026-04-27: Vite `root: 'web'` + `base: '/instagram-downloader/'`
+
+**Why**: `index.html`을 web 디렉토리에 두고 Vite의 root로 지정 — 정적 자산과 CLI 코드가 섞이지 않게 분리. base는 GH Pages가 `https://<user>.github.io/<repo>/` 경로로 서빙하는 점을 고정. 다른 이름으로 포크 시 vite.config.ts 한 줄 수정 필요. 빌드 산출물은 `dist-web/`로 분리(`dist/`는 CLI 전용)해서 두 빌드가 충돌하지 않도록 함.
+
 ---
 
 *New entries go below, newest at the bottom.*
