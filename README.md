@@ -63,9 +63,39 @@ node dist/cli.js https://www.instagram.com/<user>/reel/<id>/ --out ./downloads -
 
 ## Deploy
 
-`main` 브랜치에 푸시하면 GitHub Actions(`.github/workflows/deploy.yml`)가 자동으로 web을 빌드해 GitHub Pages에 배포합니다.
+Web UI를 GitHub Pages에 띄우려면 **(1) 자체 프록시 배포 → (2) GH Pages 활성화 → (3) `PROXY_URL` 시크릿 설정** 순서가 필요합니다.
 
-처음 한 번은 저장소 **Settings → Pages → Source: GitHub Actions**로 설정해야 합니다.
+### 1. Fly.io 프록시 배포
+
+무료 공개 CORS 프록시는 IG가 다 막아둬서 자체 프록시가 필수입니다. `proxy/` 디렉토리에 자체 포함 Fly 앱이 있습니다.
+
+```bash
+cd proxy
+fly launch --copy-config --no-deploy   # 또는 fly apps create <name>
+# fly.toml의 app/region을 수정 (kr 사용자는 nrt 권장)
+fly deploy
+```
+
+배포 후 URL을 메모: `https://<your-app>.fly.dev/`
+
+CLI에서도 같은 프록시를 쓰려면:
+```bash
+INSTAGRAM_DL_PROXY='https://<your-app>.fly.dev/?url=' node dist/cli.js <url>
+```
+(CLI는 Node에서 헤더 자유롭게 설정 가능해 보통은 프록시 없이 직접 호출 가능합니다.)
+
+### 2. GitHub Pages 활성화
+
+저장소 **Settings → Pages → Source: GitHub Actions**로 설정.
+
+### 3. `PROXY_URL` 시크릿 설정
+
+저장소 **Settings → Secrets and variables → Actions → New repository secret**:
+
+- Name: `PROXY_URL`
+- Value: `https://<your-app>.fly.dev/?url=` ← 끝에 `/?url=` 포함
+
+`main` 브랜치에 푸시하면 `.github/workflows/deploy.yml`이 web을 빌드해 GitHub Pages에 자동 배포합니다.
 
 ## Scope
 

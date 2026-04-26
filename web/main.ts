@@ -29,7 +29,10 @@ const goButton = document.querySelector<HTMLButtonElement>('#go')!;
 const statusEl = document.querySelector<HTMLParagraphElement>('#status')!;
 const resultsEl = document.querySelector<HTMLDivElement>('#results')!;
 
-const proxyUrl = resolveProxyUrl();
+// VITE_PROXY_URL is injected at build time. Set it in CI (`secrets.PROXY_URL`)
+// to your deployed Fly.io proxy. For local `npm run dev` it can be omitted —
+// resolveProxyUrl falls back to corsproxy.io which works on localhost.
+const proxyUrl = resolveProxyUrl(import.meta.env.VITE_PROXY_URL);
 
 form.addEventListener('submit', (e) => {
   e.preventDefault();

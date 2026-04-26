@@ -52,6 +52,10 @@
 
 **Why**: CLI 5케이스 모두 통과(단일 비디오, 캐러셀 10개, 사용자명 없는 /p/, 존재하지 않는 shortcode→exit 1, 파싱 실패 URL→exit 1). stderr/stdout 분리도 동작 확인. **Web UI는 브라우저로 직접 열어보지 않았음** — `npm run build:web` 통과 + dev server 정적 응답 확인까지만 했고 실제 IG 호출/다운로드 흐름은 사용자가 GH Pages에서 검증해야 함. v2 후보: Cloudflare Worker 기반 자체 프록시.
 
+## 2026-04-27: 자체 프록시 (Fly.io)로 전환 — 무료 공개 프록시 전부 막힘
+
+**Why**: v1 web UI를 production에 띄우니 corsproxy.io는 production origin을 403으로 차단(localhost만 무료), allorigins.win은 502, codetabs는 IG가 "useragent mismatch"로 거부, thingproxy는 서비스 종료. 무료 공개 프록시로는 Instagram이 안정적으로 풀리지 않음. `proxy/` 디렉토리에 의존성 없는 ~120줄 Node 프록시(`server.js` + Dockerfile + fly.toml) 추가, Fly.io에 사용자가 `fly deploy`로 배포. 프록시는 인스타+CDN만 화이트리스트, 경로별로 FB UA / 브라우저 UA / `X-IG-App-ID` 자동 주입. Web UI는 빌드타임 `VITE_PROXY_URL`(GH Actions secret `PROXY_URL`)로 프록시 URL 주입. CF Workers 대신 Fly를 고른 이유: 사용자 기존 서비스가 Fly에 있어 운영 중복 회피. 트레이드오프: 0ms 콜드스타트 대신 1~3s, 단일 region(nrt) 레이튼시.
+
 ---
 
 *New entries go below, newest at the bottom.*

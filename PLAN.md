@@ -34,6 +34,13 @@
 - [x] README: Web URL, CLI 설치/사용법, 알려진 한계 (스토리 미지원, 프록시 필요)
 - [x] 스모크 테스트: 알려진 공개 포스트로 Web와 CLI 양쪽 동작 확인
 
+### v1.1: 자체 프록시 (공개 CORS 프록시가 IG에 막혀서 추가)
+
+- [x] Fly.io 프록시 (`proxy/` — server.js + Dockerfile + fly.toml). 인스타+CDN 화이트리스트, FB UA / `X-IG-App-ID` 자동 주입
+- [x] Web UI 빌드타임 프록시 주입: `VITE_PROXY_URL` 환경변수
+- [x] GH Actions: `secrets.PROXY_URL`을 web 빌드 env로 전달
+- [x] README/DECISIONS: Fly 배포 절차 + 시크릿 설정
+
 ---
 
 **Conventions**:

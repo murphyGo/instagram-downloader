@@ -20,13 +20,13 @@ type ProcessLike = { env?: Record<string, string | undefined> };
  * The returned value is a prefix; `scraper.fetchMedia` appends the URL-encoded
  * Instagram URL to it, matching the format used by corsproxy.io and similar.
  */
-export function resolveProxyUrl(): string | undefined {
+export function resolveProxyUrl(buildDefault?: string): string | undefined {
   const w = getWindow();
-  if (w !== undefined) return resolveBrowserProxy(w);
+  if (w !== undefined) return resolveBrowserProxy(w, buildDefault);
   return resolveNodeProxy(getProcess());
 }
 
-export function resolveBrowserProxy(w: WindowLike): string | undefined {
+export function resolveBrowserProxy(w: WindowLike, buildDefault?: string): string | undefined {
   const params = new URLSearchParams(w.location?.search ?? '');
   if (params.has(PROXY_QUERY_KEY)) {
     const v = params.get(PROXY_QUERY_KEY) ?? '';
@@ -39,6 +39,7 @@ export function resolveBrowserProxy(w: WindowLike): string | undefined {
     // localStorage can throw in private mode / sandboxed iframes
   }
   if (stored !== null) return stored === '' ? undefined : stored;
+  if (buildDefault && buildDefault.trim() !== '') return buildDefault;
   return DEFAULT_BROWSER_PROXY;
 }
 
