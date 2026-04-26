@@ -114,8 +114,15 @@ const server = createServer(async (req, res) => {
   const outHeaders = {
     'content-type': upstream.headers.get('content-type') ?? 'application/octet-stream',
   };
-  const len = upstream.headers.get('content-length');
-  if (len) outHeaders['content-length'] = len;
+  // If upstream sent compressed bytes, Node's fetch already decompressed them
+  // before exposing response.body — so the original content-length / encoding
+  // would lie about the body we're streaming. Forward content-length only when
+  // we know the body is identity-encoded.
+  const upstreamEncoding = upstream.headers.get('content-encoding');
+  if (!upstreamEncoding || upstreamEncoding === 'identity') {
+    const len = upstream.headers.get('content-length');
+    if (len) outHeaders['content-length'] = len;
+  }
   // Cache successful media responses briefly to reduce upstream pressure
   if (upstream.ok && isCdn) outHeaders['cache-control'] = 'public, max-age=3600';
 
