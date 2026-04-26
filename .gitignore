@@ -3,7 +3,7 @@
 .vscode/
 *.log
 node_modules/
-__pycache__/
-*.pyc
+dist/
+*.tsbuildinfo
 .env
 .env.local

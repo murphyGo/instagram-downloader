@@ -1,0 +1,17 @@
+{
+  "name": "instagram-downloader",
+  "version": "0.0.1",
+  "description": "Download images/videos from public Instagram posts. Mobile-friendly web UI (GitHub Pages) + agent-friendly CLI.",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build:cli": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0"
+  }
+}

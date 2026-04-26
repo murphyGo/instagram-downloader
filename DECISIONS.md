@@ -22,6 +22,10 @@
 
 **Why**: BRIEF에서 "다른 에이전트가 활용"을 명시. 사람용 progress 출력은 stderr로 보내고 stdout은 `--json` 시 구조화된 결과만, 미디어 파일 경로 목록 포함. exit code: 0 성공, 1 잘못된 URL/포스트 없음, 2 네트워크/프록시 실패. 이 규약을 README에 박제.
 
+## 2026-04-27: ESM 모듈 시스템 채택 (`"type": "module"`)
+
+**Why**: 브라우저(Vite는 ESM 네이티브)와 Node 양쪽에서 같은 코드를 공유하려면 ESM이 자연스러움. CommonJS로 가면 web 번들과 Node 런타임 사이에 dual-package 문제가 생김. 트레이드오프: TS에서 상대 경로 import가 빌드 산출물의 `.js` 확장자를 명시해야 함 (`import { foo } from './foo.js'`). Node 20+를 요구하는 BRIEF와도 부합.
+
 ---
 
 *New entries go below, newest at the bottom.*

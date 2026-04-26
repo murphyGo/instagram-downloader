@@ -15,7 +15,7 @@
 
 ### Setup
 
-- [ ] Node.js + TypeScript 프로젝트 초기화 (package.json, tsconfig.json, .gitignore)
+- [x] Node.js + TypeScript 프로젝트 초기화 (package.json, tsconfig.json, .gitignore)
 - [ ] 디렉토리 구조: `src/scraper.ts` (공유), `src/cli.ts`, `web/` (Vite app)
 - [ ] Vite 설치 + GH Pages용 `base` 설정
 
