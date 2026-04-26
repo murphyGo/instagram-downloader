@@ -8,7 +8,7 @@ Bootstrap a personal project from a rough idea in one shot. Five questions, thre
 
 ## Objective
 
-Generate `BRIEF.md`, `PLAN.md`, `DECISIONS.md`, and a project-specific `CLAUDE.md` from a single round of dialogue. Replace the template's `README.md` with a project README. Leave the two skills (`lite-init`, `lite-dev`) in place. **Do not** create `aidlc-docs/`, `audit.md`, `aidlc-state.md`, or any refinement-log.
+Generate `BRIEF.md`, `PLAN.md`, `DECISIONS.md`, and a project-specific `CLAUDE.md` from a single round of dialogue. Replace the template's `README.md` with a project README. Leave the three skills (`lite-init`, `lite-dev`, `code-review`) in place. **Do not** create `aidlc-docs/`, `audit.md`, `aidlc-state.md`, or any refinement-log.
 
 ## Execution Steps
 
@@ -49,7 +49,7 @@ I see this is an existing project. Here's what I picked up — confirm or correc
 Answer only what needs correction or filling in.
 ```
 
-**Brownfield BRIEF rules** (override Step 4 generation rules):
+**Brownfield BRIEF rules** (override Step 4 *structure*, not the ≤1 page length cap):
 - BRIEF's "MVP features" section MUST distinguish **Done** vs **Remaining**
 - BRIEF's "Tech" section reflects what's **detected**, not aspirational
 - PLAN.md tasks should target the **Remaining** features, not redo what's done
@@ -88,12 +88,18 @@ If features are entirely missing AND can't be inferred, ask **one** follow-up: "
 
 ### Step 4: Generate the three files
 
-Read the templates from `templates/BRIEF.md`, `templates/PLAN.md`, `templates/DECISIONS.md` (in the project root, copied from this template repo) and fill them in.
+Behavior depends on the mode picked in Step 1:
+
+| Mode | Source | Output |
+|------|--------|--------|
+| First init (Greenfield or Brownfield) | Read `templates/BRIEF.md`, `templates/PLAN.md`, `templates/DECISIONS.md` | Write filled copies to project root |
+| Refinement (R) | Read existing root `BRIEF.md` / `PLAN.md` / `DECISIONS.md` | Edit them in place — do NOT touch `templates/` |
+| Refinement (X) | Step 1 already renamed existing files to `.bak`; treat as a first init | Read from `templates/` if still present; if `templates/` was already consumed, reuse the `.bak` files as a starting point and note this in `DECISIONS.md` |
 
 **Generation rules:**
 - `BRIEF.md` — keep under 1 page (~50 lines). Prose with bullets. No FR-001 numbering. No NFR sections unless user mentioned perf/security explicitly.
 - `PLAN.md` — flat checklist of 5–15 tasks grouped by phase (Setup / Core / Polish are common, but adapt). Inline build/test commands at the top once tech is decided. No "units," no nested stage headings.
-- `DECISIONS.md` — append one entry for each non-obvious choice made during init (e.g., recommended tech stack, deferred features). Format: `## YYYY-MM-DD: <title>` then 2-4 lines of rationale. Today is `{current date}`.
+- `DECISIONS.md` — append one entry for each non-obvious choice made during init (e.g., recommended tech stack, deferred features). Format: `## YYYY-MM-DD: <title>` then 2-4 lines of rationale. Use today's date as provided by the system.
 
 ### Step 5: Generate project CLAUDE.md
 
@@ -153,8 +159,8 @@ In development. See `PLAN.md` for progress.
 
 ### Step 7: Clean up template artifacts
 
-- Delete `templates/` directory (the templates have been consumed).
-- Leave `.claude/skills/lite-init/` and `.claude/skills/lite-dev/` in place.
+- Delete `templates/` if it exists (the templates have been consumed). On Refinement runs `templates/` is typically already absent — skip silently in that case.
+- Leave `.claude/skills/lite-init/`, `.claude/skills/lite-dev/`, and `.claude/skills/code-review/` in place — all three are part of the runtime toolkit.
 - **Do not** touch `.git/` — the user manages that themselves (per the README quick start, they typically `rm -rf .git && git init` before cloning).
 
 ### Step 8: Final report

@@ -4,13 +4,13 @@ This is the **aidlc-lite template repo itself**, not a project using it. After c
 
 ## Purpose
 
-Lightweight personal AIDLC starter. Three files (`BRIEF.md`, `PLAN.md`, `DECISIONS.md`) and two skills (`/lite-init`, `/lite-dev`).
+Lightweight personal AIDLC starter. Three files (`BRIEF.md`, `PLAN.md`, `DECISIONS.md`) and three skills (`/lite-init`, `/lite-dev`, `/code-review`).
 
 ## Skills
 
 | Skill | Purpose |
 |-------|---------|
-| `/lite-init` | One-shot 5-question idea capture → generates BRIEF, PLAN, DECISIONS, project CLAUDE.md |
+| `/lite-init` | Idea capture entry point — auto-detects greenfield / brownfield / refinement, generates or updates BRIEF, PLAN, DECISIONS, project CLAUDE.md |
 | `/lite-dev` | Picks next unchecked PLAN.md item, implements, checks it off |
 | `/code-review` | Deep review of pending changes — language/framework patterns + 7 conditional protocols (concurrency, security, etc.) |
 

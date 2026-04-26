@@ -55,7 +55,7 @@ Implement the task. Keep it scoped — if the task is "Set up project structure,
 
 ### Step 4: Run tests (sanity check, not a gate)
 
-Look for a test command — in priority order: `PLAN.md` Commands section, `package.json` scripts, `Makefile`, `pyproject.toml`, `go.mod` conventions.
+Look for a test command — try in this order: `PLAN.md` `Test:` line; `npm test` (or `pnpm test` / `yarn test` matching the lockfile) if `package.json` has `scripts.test`; `make test` if `Makefile` has a `test` target; `pytest` if `pyproject.toml` references pytest; `go test ./...` if `go.mod` exists; `cargo test` if `Cargo.toml` exists.
 
 | Outcome | Action |
 |---------|--------|

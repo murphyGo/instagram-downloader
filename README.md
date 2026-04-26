@@ -4,7 +4,7 @@ A lightweight, solo-developer-first AIDLC starter. Three files, two skills. No a
 
 ## Why this exists
 
-[AWS AI-DLC](https://github.com/aws-samples/sample-aws-ai-dlc-rules) and [aidlc-starter](https://github.com/) are excellent for team projects with stakeholders, compliance needs, and 5k+ lines of code. They are too heavy for personal projects: ~20 approval gates, ~18k lines of rules, and a documents-to-code ratio that inverts on small work.
+[AWS AI-DLC](https://github.com/aws-samples/sample-aws-ai-dlc-rules) and [aidlc-starter](https://github.com/murphyGo/aidlc-starter) are excellent for team projects with stakeholders, compliance needs, and 5k+ lines of code. They are too heavy for personal projects: ~20 approval gates, ~18k lines of rules, and a documents-to-code ratio that inverts on small work.
 
 `aidlc-lite` keeps the genuinely useful core — one round of intent clarification, a one-page brief, an append-only decision log, a flat checklist — and drops everything else.
 
