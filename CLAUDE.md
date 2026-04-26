@@ -1,42 +1,46 @@
-# aidlc-lite (template repo)
+# Instagram Downloader
 
-This is the **aidlc-lite template repo itself**, not a project using it. After cloning, the user runs `/lite-init` and this file is replaced with a project-specific CLAUDE.md.
+인스타그램 포스트 URL을 입력하면 이미지/동영상을 다운로드하는 도구. 모바일 친화 web UI(GH Pages) + 에이전트 친화 CLI.
 
-## Purpose
-
-Lightweight personal AIDLC starter. Three files (`BRIEF.md`, `PLAN.md`, `DECISIONS.md`) and three skills (`/lite-init`, `/lite-dev`, `/code-review`).
-
-## Skills
-
-| Skill | Purpose |
-|-------|---------|
-| `/lite-init` | Idea capture entry point — auto-detects greenfield / brownfield / refinement, generates or updates BRIEF, PLAN, DECISIONS, project CLAUDE.md |
-| `/lite-dev` | Picks next unchecked PLAN.md item, implements, checks it off |
-| `/code-review` | Deep review of pending changes — language/framework patterns + 7 conditional protocols (concurrency, security, etc.) |
-
-## Files
+## Quick reference
 
 | File | Role |
 |------|------|
-| `README.md` | What aidlc-lite is, quick start, design principles |
-| `.claude/skills/lite-init/SKILL.md` | Init skill definition |
-| `.claude/skills/lite-init/templates/BRIEF.md` | Template for the project's one-page brief |
-| `.claude/skills/lite-init/templates/PLAN.md` | Template for the project's flat checklist |
-| `.claude/skills/lite-init/templates/DECISIONS.md` | Template for the project's ADR log |
-| `.claude/skills/lite-dev/SKILL.md` | Dev driver skill definition |
-| `.claude/skills/code-review/SKILL.md` | Code review skill (trimmed from aidlc-starter) |
-| `.claude/skills/code-review/protocols/` | 7 deep-analysis protocols + INDEX (loaded on demand) |
+| `BRIEF.md` | Problem, MVP scope, tech, out-of-scope, success |
+| `PLAN.md` | Flat checklist — checking items off IS the state |
+| `DECISIONS.md` | ADR log for non-obvious choices |
 
-## When developing aidlc-lite itself
+## Skills
 
-- Skills must stay short. `/lite-init` ≤ 220 lines, `/lite-dev` ≤ 150 lines. If they grow, you're rebuilding full AIDLC.
-- `/code-review` is the exception — it carries language/framework tables and protocols. Keep SKILL.md ≤ 300 lines; protocols are conditionally loaded so they don't burn context.
-- Templates must stay prose-friendly. No FR-001/NFR-001 numbering schemes. No fill-in-the-blank forms.
-- Resist adding stages. The whole value prop is "no stages."
-- Resist adding `audit.md`, `aidlc-state.md`, refinement-log, cross-check. Git and checklists replace all of these.
-- `/code-review` must NEVER become a mandatory gate inside `/lite-dev`. It is a suggestion only — the commit is the gate.
-- If a feature is "useful for handoff to others" — it belongs in aidlc-starter, not here.
+- `/lite-dev` — picks the next unchecked `PLAN.md` item, implements it, checks it off
+- `/code-review` — review pending changes (defaults to `git diff`); reads `BRIEF.md` for project alignment
+- `/lite-init` — re-run to refine `BRIEF.md` if direction changes
 
-## Promotion path
+## Tech
 
-Out of scope for now. If a user's project grows past ~3k LOC and they want full AIDLC, they manually copy `BRIEF.md` content into an aidlc-starter `IDEA.md` and run `/init-project` there. We do not maintain a migration tool.
+- **Language**: TypeScript
+- **Runtime**: Node.js 20+ (CLI), 브라우저 (Web)
+- **Web build**: Vite, 정적 SPA, GH Pages 배포
+- **Data**: 없음 — 다운로드는 사용자 디바이스로 직접
+
+## Build / test commands
+
+- Install: `npm install`
+- Build CLI: `npm run build:cli`
+- Build Web: `npm run build:web`
+- Dev Web: `npm run dev`
+- Test: `npm test`
+- Run CLI: `node dist/cli.js <url>`
+
+(아직 구현 전 — `PLAN.md` Setup 단계 완료 후 활성화)
+
+## Conventions
+
+- Commit is the approval gate. No other gates.
+- One PLAN.md task per commit when possible.
+- If a non-obvious choice is made during dev, append to `DECISIONS.md`.
+- CLI 출력: 진행 메시지는 stderr, 결과(특히 `--json`)는 stdout. exit code는 `DECISIONS.md` 규약 따름.
+
+## When to graduate
+
+If this project grows past ~3k LOC, multiple developers, or real compliance/audit needs, copy `BRIEF.md` into an [aidlc-starter](https://github.com/murphyGo/aidlc-starter) `IDEA.md` and run `/init-project` there. aidlc-lite is intentionally one-way — no migration tool.
