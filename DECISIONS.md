@@ -60,6 +60,10 @@
 
 **Why**: 사용자가 시도한 reel `DWIlp7age_0`은 og:type이 "article"로 와서 og:video가 없고, 작성자(cho.tanky)의 최근 12개 안에도 없어 web_profile_info 폴백도 실패 → 썸네일만 노출. 조사 결과 `https://www.instagram.com/p/<sc>/embed/captioned/`를 FB UA로 호출하면 응답에 `"contextJSON"` JS 문자열로 박힌 JSON 안에 `gql_data.shortcode_media`(__typename, video_url, display_resources, edge_sidecar_to_children 모두 포함)가 어떤 게시물 종류·연식이든 일관되게 들어옴. 단일 요청이고 인증 불필요. 캐러셀의 풀 해상도(1080px)는 `display_resources` 배열의 가장 큰 src를 골라 사용 (`display_url`은 `lookaside.instagram.com/seo/...` 리다이렉터로 와서 확장자 추출이 깨짐). og: + web_profile_info 경로는 폴백으로 유지.
 
+## 2026-04-27: GraphQL `xdt_shortcode_media` 폴백 추가 — embed의 `contextJSON:null` 케이스 해결
+
+**Why**: 사용자가 시도한 reel `DXQzLIUEwHs`는 `/embed/captioned/` 응답의 `contextJSON`이 `null`로 와서 embed 경로 실패 → og:type=article(og:video 없음) → 작성자(magenta_6262)의 timeline 12개 안에도 없음 → og:image 썸네일로 무음 폴백되어 동영상이 아닌 정지 이미지가 받아졌음. 추가 조사로 `GET https://www.instagram.com/graphql/query?doc_id=8845758582119845&variables={"shortcode":"<sc>"}` (헤더 `X-IG-App-ID`, `X-FB-Friendly-Name: PolarisPostActionLoadPostQueryQuery`, 브라우저 UA, Referer)이 인증 없이 `xdt_shortcode_media`(typename `XDTGraphVideo`/`XDTGraphImage`/`XDTGraphSidecar`, 동일한 video_url/display_resources/edge_sidecar_to_children 구조)를 안정적으로 반환함을 확인. embed 다음 폴백으로 추가, 같은 typename 패턴을 caroussel 검사에 합류. doc_id가 회전할 위험은 있으나 embed가 1순위이므로 상시 fragile은 아님. 프록시도 `/graphql/*` 경로에 헤더 자동 주입하도록 업데이트(브라우저에서는 forbidden header).
+
 ---
 
 *New entries go below, newest at the bottom.*

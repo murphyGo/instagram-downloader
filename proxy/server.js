@@ -8,6 +8,7 @@
 //
 // Header injection rules:
 // - instagram.com /api/*     → browser UA + Referer + X-IG-App-ID
+// - instagram.com /graphql/* → browser UA + Referer + X-IG-App-ID + X-FB-Friendly-Name
 // - instagram.com /<other>   → facebookexternalhit/1.1 + Referer (forces og:*)
 // - cdninstagram / fbcdn     → browser UA only
 
@@ -88,19 +89,21 @@ const server = createServer(async (req, res) => {
   }
 
   const isApi = isIg && target.pathname.startsWith('/api/');
+  const isGraphql = isIg && target.pathname.startsWith('/graphql/');
   const username = isIg ? extractUsername(target.pathname) : null;
 
   const headers = {
     accept: '*/*',
     'accept-language': 'en-US,en;q=0.9',
-    'user-agent': isIg && !isApi ? FB_UA : BROWSER_UA,
+    'user-agent': isIg && !isApi && !isGraphql ? FB_UA : BROWSER_UA,
   };
   if (isIg) {
     headers.referer = username
       ? `https://www.instagram.com/${username}/`
       : 'https://www.instagram.com/';
   }
-  if (isApi) headers['x-ig-app-id'] = IG_APP_ID;
+  if (isApi || isGraphql) headers['x-ig-app-id'] = IG_APP_ID;
+  if (isGraphql) headers['x-fb-friendly-name'] = 'PolarisPostActionLoadPostQueryQuery';
 
   let upstream;
   try {

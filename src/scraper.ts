@@ -54,23 +54,33 @@ export async function fetchMedia(
   const fetchFn = opts.fetchImpl ?? fetch;
   const { shortcode, username: urlUsername } = parseShortcode(postUrl);
 
-  // Path 1 (preferred): /embed/captioned/ ships the full shortcode_media node
-  // for any post age, type, and carousel size. One request, no auth.
+  // Path 1: /embed/captioned/ ships the full shortcode_media node in one request,
+  // no auth. Some Reels return contextJSON:null though, so we have a graphql fallback.
   try {
     const items = await fetchViaEmbed(fetchFn, shortcode, opts.proxyUrl);
     if (items.length > 0) return items;
   } catch {
-    // fall through — embed format may have changed; let og:/profile try
+    // fall through — embed format may have changed
+  }
+
+  // Path 2: PolarisPostActionLoadPostQueryQuery — works for posts where embed's
+  // contextJSON is null (observed on some Reels). Returns xdt_shortcode_media
+  // with the same shape as the embed node, just XDT-prefixed typenames.
+  try {
+    const items = await fetchViaGraphql(fetchFn, shortcode, opts.proxyUrl);
+    if (items.length > 0) return items;
+  } catch {
+    // fall through to og:/profile fallbacks
   }
 
   const og = await fetchOgTags(fetchFn, shortcode, opts.proxyUrl);
 
-  // Path 2: og:video — fast path for posts where IG marks og:type=video.
+  // Path 3: og:video — fast path for posts where IG marks og:type=video.
   if (og['og:type'] === 'video' && og['og:video']) {
     return [{ type: 'video', url: og['og:video'], filename: filenameFor(og['og:video'], shortcode, 0) }];
   }
 
-  // Path 3: web_profile_info for full-res images + carousel sub-items
+  // Path 4: web_profile_info for full-res images + carousel sub-items
   // (limited to the user's latest ~12 posts).
   const username = urlUsername ?? usernameFromOgUrl(og['og:url']);
   if (username) {
@@ -91,6 +101,40 @@ export async function fetchMedia(
     ? 'Post may be private or deleted.'
     : 'In a browser the URL must include the username (e.g. /<user>/p/<shortcode>/) for the fallback path to work.';
   throw new Error(`No media URL found for ${shortcode}. ${tip}`);
+}
+
+/**
+ * GraphQL doc_id for PolarisPostActionLoadPostQueryQuery (the query the IG web
+ * app uses when rendering a post page). Returns `xdt_shortcode_media` with
+ * is_video / video_url / display_resources / edge_sidecar_to_children for any
+ * public post, including Reels. doc_id may rotate — embed path is the primary.
+ */
+const GRAPHQL_DOC_ID = '8845758582119845';
+
+async function fetchViaGraphql(
+  fetchFn: typeof fetch,
+  shortcode: string,
+  proxyUrl: string | undefined,
+): Promise<Media[]> {
+  const params = new URLSearchParams({
+    doc_id: GRAPHQL_DOC_ID,
+    variables: JSON.stringify({ shortcode }),
+  });
+  const target = `https://www.instagram.com/graphql/query?${params.toString()}`;
+  const res = await fetchFn(wrap(target, proxyUrl), {
+    headers: {
+      'X-IG-App-ID': IG_APP_ID,
+      'X-FB-Friendly-Name': 'PolarisPostActionLoadPostQueryQuery',
+      'User-Agent': BROWSER_UA,
+      'Referer': 'https://www.instagram.com/',
+      'Accept': '*/*',
+    },
+  });
+  if (!res.ok) throw new Error(`graphql HTTP ${res.status} for ${shortcode}`);
+  const data = (await res.json()) as { data?: { xdt_shortcode_media?: MediaNode } };
+  const node = data?.data?.xdt_shortcode_media;
+  if (!node) throw new Error(`graphql: xdt_shortcode_media missing for ${shortcode}`);
+  return extractMediaFromNode(node, shortcode);
 }
 
 async function fetchViaEmbed(
@@ -262,7 +306,7 @@ type ProfileApiResponse = {
 };
 
 function extractMediaFromNode(node: MediaNode, shortcode: string): Media[] {
-  if (node.__typename === 'GraphSidecar') {
+  if (node.__typename === 'GraphSidecar' || node.__typename === 'XDTGraphSidecar') {
     const children = node.edge_sidecar_to_children?.edges ?? [];
     return children
       .map((c, i) => nodeToMedia(c.node, shortcode, i))
